@@ -34,12 +34,12 @@ func main() {
 
 	switch command {
 	case "lihat":
-		if len(args) < 3 {
-			fmt.Fprintf(os.Stderr, "Usage: go run ./klien-go <address> see <id>\n")
-			os.Exit(1)
+		if len(args) >= 3 {
+			id := args[2]
+			cmdSeeList(baseURL, id)
+		} else {
+			cmdAllList(baseURL)
 		}
-		id := args[2]
-		cmdSeeList(baseURL, id)
 
 	case "tambah":
 		if len(args) < 4 {
