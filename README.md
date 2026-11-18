@@ -18,6 +18,9 @@ go run ./klien-go http://localhost:8080 tambah "Botol minum biru" Kantin
 
 # Melihat detail barang berdasarkan ID
 go run ./klien-go http://localhost:8080 lihat 1
+
+# Melihat list Semua barang tanpa ID
+go run ./klien-go http://localhost:8080 lihat
 ```
 
 #### Run HTTP
