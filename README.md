@@ -14,7 +14,7 @@ go run ./server-go
 #### Run client-go
 ```Bash
 # Membuat data barang baru
-go run ./klien-go http://localhost:8080 buat "Botol minum biru" Kantin
+go run ./klien-go http://localhost:8080 tambah "Botol minum biru" Kantin
 
 # Melihat detail barang berdasarkan ID
 go run ./klien-go http://localhost:8080 lihat 1
