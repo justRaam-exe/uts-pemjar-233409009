@@ -24,6 +24,12 @@ func main() {
 	}
 
 	baseURL := strings.TrimSuffix(args[0], "/")
+
+	if len(args) == 1 {
+		cmdAllList(baseURL)
+		return
+	}
+
 	command := args[1]
 
 	switch command {
@@ -33,7 +39,7 @@ func main() {
 			os.Exit(1)
 		}
 		id := args[2]
-		cmdLihat(baseURL, id)
+		cmdSeeList(baseURL, id)
 
 	case "tambah":
 		if len(args) < 4 {
@@ -42,7 +48,7 @@ func main() {
 		}
 		nama := args[2]
 		lokasi := args[3]
-		cmdTambah(baseURL, nama, lokasi)
+		cmdMakeNewList(baseURL, nama, lokasi)
 
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
@@ -50,7 +56,72 @@ func main() {
 	}
 }
 
-func cmdLihat(baseURL, id string) {
+func cmdAllList(baseURL string) {
+	url := fmt.Sprintf("%s/barang", baseURL)
+	maxRetries := 5
+	backoff := 200 * time.Millisecond
+
+	for i := 1; i <= maxRetries; i++ {
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating request: %v\n", err)
+			os.Exit(1)
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			if i == maxRetries {
+				fmt.Fprintf(os.Stderr, "Connection error after %d tries: %v\n", maxRetries, err)
+				os.Exit(1)
+			}
+			time.Sleep(backoff)
+			backoff *= 2
+			continue
+		}
+
+		body, readErr := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if readErr != nil {
+			if i == maxRetries {
+				fmt.Fprintf(os.Stderr, "Failed to read response body: %v\n", readErr)
+				os.Exit(1)
+			}
+			time.Sleep(backoff)
+			backoff *= 2
+			continue
+		}
+
+		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
+			if i == maxRetries {
+				fmt.Println(string(body))
+				os.Exit(1)
+			}
+			retryAfterSec := 0
+			if headerVal := resp.Header.Get("Retry-After"); headerVal != "" {
+				if sec, parseErr := strconv.Atoi(headerVal); parseErr == nil {
+					retryAfterSec = sec
+				}
+			}
+
+			if retryAfterSec > 0 {
+				time.Sleep(time.Duration(retryAfterSec) * time.Second)
+			} else {
+				time.Sleep(backoff)
+				backoff *= 2
+			}
+			continue
+		}
+
+		fmt.Println(string(strings.TrimSpace(string(body))))
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			os.Exit(0)
+		} else {
+			os.Exit(1)
+		}
+	}
+}
+
+func cmdSeeList(baseURL, id string) {
 	url := fmt.Sprintf("%s/barang/%s", baseURL, id)
 	maxRetries := 5
 	backoff := 200 * time.Millisecond
@@ -114,7 +185,7 @@ func cmdLihat(baseURL, id string) {
 	}
 }
 
-func cmdTambah(baseURL, nama, lokasi string) {
+func cmdMakeNewList(baseURL, nama, lokasi string) {
 	url := fmt.Sprintf("%s/barang", baseURL)
 	payload := map[string]string{
 		"nama":   nama,
